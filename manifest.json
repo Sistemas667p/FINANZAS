@@ -4,8 +4,15 @@
   "display": "standalone",
   "name": "Finanzas",
   "orientation": "any",
-  "scope": "/",
+  "scope": "/FINANZAS/",
   "short_name": "Finanzas",
-  "start_url": "https://sistemas667p.github.io/FINANZAS/",
-  "theme_color": "#ffffff"
+  "start_url": "/FINANZAS/",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/javascript/javascript.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
