@@ -1,13 +1,19 @@
 {
-  "background_color": "#0b0c10",
-  "theme_color": "#0b0c10",
-  "display": "standalone",
-  "orientation": "portrait",
-  "name": "Finanzas",
-  "short_name": "Finanzas",
+  "name": "FinanceOS",
+  "short_name": "FinanceOS",
+  "description": "Aplicación de control de finanzas personales",
   "start_url": "./index.html",
   "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
   "icons": [
+    {
+      "src": "./icono.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
     {
       "src": "./icono.png",
       "sizes": "512x512",
