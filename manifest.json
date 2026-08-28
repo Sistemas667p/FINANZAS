@@ -4,8 +4,8 @@
   "display": "standalone",
   "name": "Finanzas",
   "orientation": "any",
-  "scope": "/",
+  "scope": "/FINANZAS/",
   "short_name": "Finanzas",
-  "start_url": "/https://sistemas667p.github.io/FINANZAS/",
+  "start_url": "/FINANZAS/",
   "theme_color": "#ffffff"
 }
