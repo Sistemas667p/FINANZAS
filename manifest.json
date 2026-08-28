@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Finanzas",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Finanzas",
+  "start_url": "/https://sistemas667p.github.io/FINANZAS/",
+  "theme_color": "#ffffff"
+}
