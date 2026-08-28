@@ -1,16 +1,15 @@
 {
-  "background_color": "#ffffff",
-  "dir": "ltr",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
   "display": "standalone",
+  "orientation": "portrait",
   "name": "Finanzas",
-  "orientation": "any",
-  "scope": "/FINANZAS/",
   "short_name": "Finanzas",
-  "start_url": "/FINANZAS/",
-  "theme_color": "#ffffff",
+  "start_url": "./index.html",
+  "scope": "./",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/javascript/javascript.png",
+      "src": "./icono.png",
       "sizes": "512x512",
       "type": "image/png"
     }
