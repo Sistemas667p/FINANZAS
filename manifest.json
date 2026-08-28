@@ -10,7 +10,7 @@
   "theme_color": "#0b0c10",
   "icons": [
     {
-      "src": "https://img.icons8.com/fluidsystems/512/financial-limit.png",
+      "src": "./IMAGEN.png",
       "sizes": "512x512",
       "type": "image/png"
     }
