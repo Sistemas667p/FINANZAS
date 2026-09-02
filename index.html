@@ -1,334 +1,828 @@
-<script>
-    let tipoActual = '';
-    let datosCaja = 0;
-    let datosSobrante = 0;
-    let datosIngresos = 0;
-    let movimientosActuales = [];
-    let historialCiclos = [];
-    let indiceCicloSeleccionado = null;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceOS</title>
+    <link rel="manifest" href="./manifest.json">
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: #1f2833;
+            --accent: #45a29e;
+            --text-main: #c5c6c7;
+            --text-white: #ffffff;
+            --green: #34d399;
+            --red: #f87171;
+            --border: #2e3846;
+        }
 
-    window.onload = function() {
-        cargarDatosLocales(); // <-- CARGA LOS DATOS AL ABRIR
-        bloquearAppTotal();
-    };
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    // --- FUNCIONES DE ALMACENAMIENTO LOCAL (PERSISTENCIA) ---
-    function guardarDatosLocales() {
-        const data = {
-            caja: datosCaja,
-            sobrante: datosSobrante,
-            ingresos: datosIngresos,
-            periodoActual: document.getElementById('textoPeriodoActual').textContent,
-            movimientos: movimientosActuales,
-            historial: historialCiclos
-        };
-        localStorage.setItem('financeos_data', JSON.stringify(data));
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-    function cargarDatosLocales() {
-        const guardado = localStorage.getItem('financeos_data');
-        if (guardado) {
-            try {
-                const data = JSON.parse(guardado);
-                datosCaja = data.caja || 0;
-                datosSobrante = data.sobrante || 0;
-                datosIngresos = data.ingresos || 0;
-                if (data.periodoActual) {
-                    document.getElementById('textoPeriodoActual').textContent = data.periodoActual;
-                    document.getElementById('cfgNombrePeriodo').value = data.periodoActual;
-                }
-                movimientosActuales = data.movimientos || [];
-                historialCiclos = data.historial || [];
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 850px;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
+        }
 
-                renderizarMovimientosActuales();
-                renderizarHistorial();
-                actualizarPantalla();
-            } catch (e) {
-                console.error("Error al cargar datos locales", e);
+        @media (min-width: 480px) {
+            .app-container {
+                border-radius: 24px;
+                border: 1px solid var(--border);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             }
         }
-    }
-    // -------------------------------------------------------
 
-    function bloquearAppTotal() {
-        document.getElementById('inputPinBloqueo').value = '';
-        document.getElementById('pantallaBloqueo').style.display = 'flex';
-    }
-
-    function verificarPin() {
-        const pinIngresado = document.getElementById('inputPinBloqueo').value;
-        if(pinIngresado === '1601') {
-            document.getElementById('pantallaBloqueo').style.display = 'none';
-        } else {
-            alert('PIN Incorrecto. El PIN predeterminado es 1601.');
-            document.getElementById('inputPinBloqueo').value = '';
-        }
-    }
-
-    function cambiarPestaña(tabName, event) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-        
-        if(tabName === 'panel') {
-            document.getElementById('tab-panel').classList.add('active');
-        } else {
-            document.getElementById('tab-historial').classList.add('active');
-        }
-        event.currentTarget.classList.add('active');
-    }
-
-    function abrirModal(tipo) {
-        tipoActual = tipo;
-        const modal = document.getElementById('modalAccion');
-        const titulo = document.getElementById('modalTitulo');
-        const grupoCat = document.getElementById('grupoCategoria');
-        const labelConc = document.getElementById('labelConcepto');
-
-        if (tipo === 'ingreso') {
-            titulo.textContent = 'Registrar Ingreso Extra';
-            labelConc.textContent = 'Concepto (Ej. Changas, Venta)';
-            grupoCat.style.display = 'none';
-        } else {
-            titulo.textContent = 'Registrar Gasto';
-            labelConc.textContent = 'Concepto / Detalle';
-            grupoCat.style.display = 'block';
+        /* Pantalla de Bloqueo PIN */
+        #pantallaBloqueo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
 
-        document.getElementById('inputConcepto').value = '';
-        document.getElementById('inputMonto').value = '';
-        modal.style.display = 'flex';
-    }
-
-    function cerrarModal(idModal) {
-        document.getElementById(idModal).style.display = 'none';
-    }
-
-    function abrirCerrarCiclo() {
-        document.getElementById('inputNuevoSueldo').value = '0';
-        document.getElementById('modalCiclo').style.display = 'flex';
-    }
-
-    function abrirConfiguracion() {
-        document.getElementById('modalConfig').style.display = 'flex';
-    }
-
-    function guardarConfiguracion() {
-        const nuevoPeriodo = document.getElementById('cfgNombrePeriodo').value;
-        document.getElementById('textoPeriodoActual').textContent = nuevoPeriodo;
-        guardarDatosLocales(); // <-- GUARDAR CAMBIO
-        cerrarModal('modalConfig');
-        alert('Configuración guardada correctamente.');
-    }
-
-    function guardarAccion() {
-        const concepto = document.getElementById('inputConcepto').value || (tipoActual === 'ingreso' ? 'Ingreso extra' : 'Gasto general');
-        const monto = parseFloat(document.getElementById('inputMonto').value);
-        
-        if (isNaN(monto) || monto <= 0) {
-            alert('Por favor ingresá un monto válido.');
-            return;
+        .lock-box {
+            background-color: var(--panel-bg);
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            border: 1px solid var(--border);
         }
 
-        let detalleMovimiento = {
-            tipo: tipoActual,
-            concepto: concepto,
-            monto: monto,
-            categoria: tipoActual === 'gasto' ? document.getElementById('selectCategoria').value : 'Ingreso Extra'
-        };
-
-        movimientosActuales.push(detalleMovimiento);
-
-        if (tipoActual === 'ingreso') {
-            datosIngresos += monto;
-            datosCaja += monto;
-        } else {
-            datosCaja -= monto;
+        .lock-box h2 {
+            color: var(--text-white);
+            margin-bottom: 8px;
+            font-size: 20px;
         }
 
-        renderizarMovimientosActuales();
-        actualizarPantalla();
-        guardarDatosLocales(); // <-- GUARDAR AUTOMÁTICAMENTE
-        cerrarModal('modalAccion');
-    }
+        .lock-box p {
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
 
-    function renderizarMovimientosActuales() {
-        const lista = document.getElementById('listaMovimientos');
-        lista.innerHTML = `
-            <div class="transaction-item">
-                <div class="t-info">
-                    <div>Sueldo / Inicio de Ciclo</div>
-                    <div>Base inicial</div>
-                </div>
-                <div class="t-amount income">+$${datosSobrante.toLocaleString()}</div>
+        .lock-box input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-white);
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            margin-bottom: 16px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent);
+            color: var(--text-white);
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Header Principal */
+        header {
+            padding: 16px 20px;
+            background-color: var(--panel-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 18px;
+            color: var(--text-white);
+        }
+
+        .header-actions button {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 18px;
+            cursor: pointer;
+            margin-left: 12px;
+        }
+
+        /* Tabs de Navegación */
+        .tabs {
+            display: flex;
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: var(--text-white);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        /* Contenido de Pestañas */
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tarjetas de Balance */
+        .balance-card {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .balance-card span {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .balance-card h2 {
+            font-size: 32px;
+            color: var(--text-white);
+            margin-top: 6px;
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background-color: var(--panel-bg);
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card span {
+            font-size: 11px;
+        }
+
+        .stat-card h3 {
+            font-size: 18px;
+            color: var(--text-white);
+            margin-top: 4px;
+        }
+
+        /* Botones de Acción Rápida */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-action {
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-income { background-color: rgba(52, 211, 153, 0.15); color: var(--green); border: 1px solid var(--green); }
+        .btn-expense { background-color: rgba(248, 113, 113, 0.15); color: var(--red); border: 1px solid var(--red); }
+        .btn-cycle { background-color: rgba(69, 162, 158, 0.15); color: var(--accent); border: 1px solid var(--accent); grid-column: span 2; }
+
+        /* Lista de Transacciones */
+        .section-title {
+            font-size: 14px;
+            color: var(--text-white);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .transaction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .transaction-item {
+            background-color: var(--panel-bg);
+            padding: 12px 14px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+        }
+
+        .t-info div:first-child { font-size: 13px; color: var(--text-white); font-weight: 500; }
+        .t-info div:last-child { font-size: 11px; color: var(--text-main); margin-top: 2px; }
+        .t-amount { font-weight: bold; font-size: 13px; }
+        .t-amount.income { color: var(--green); }
+        .t-amount.expense { color: var(--red); }
+
+        /* Modales */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .modal-content {
+            background-color: var(--panel-bg);
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-content h3 { color: var(--text-white); font-size: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 11px; color: var(--text-main); }
+        .form-control {
+            padding: 10px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-white);
+            font-size: 14px;
+        }
+
+        .modal-buttons { display: flex; gap: 10px; margin-top: 6px; }
+        .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+
+        /* Historial Tarjetas */
+        .cycle-card-hist {
+            background-color: var(--panel-bg);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- PANTALLA DE BLOQUEO PIN -->
+        <div id="pantallaBloqueo">
+            <div class="lock-box">
+                <h2>FinanceOS</h2>
+                <p>Ingresá tu PIN de seguridad (Predeterminado: 1601)</p>
+                <input type="password" id="inputPinBloqueo" maxlength="4" placeholder="••••">
+                <button class="btn-primary" onclick="verificarPin()">Desbloquear</button>
             </div>
-        `;
+        </div>
 
-        movimientosActuales.forEach(m => {
-            const item = document.createElement('div');
-            item.className = 'transaction-item';
-            if (m.tipo === 'ingreso') {
-                item.innerHTML = `
-                    <div class="t-info">
-                        <div>${m.concepto}</div>
-                        <div>Ingreso Extra</div>
-                    </div>
-                    <div class="t-amount income">+$${m.monto.toLocaleString()}</div>
-                `;
-            } else {
-                item.innerHTML = `
-                    <div class="t-info">
-                        <div>${m.concepto}</div>
-                        <div>${m.categoria}</div>
-                    </div>
-                    <div class="t-amount expense">-$${m.monto.toLocaleString()}</div>
-                `;
-            }
-            lista.prepend(item);
-        });
-    }
+        <!-- HEADER -->
+        <header>
+            <div>
+                <h1>FinanceOS</h1>
+                <div style="font-size: 11px; color: var(--text-main);" id="textoPeriodoActual">5 Agosto Al 4 Septiembre</div>
+            </div>
+            <div class="header-actions">
+                <button onclick="abrirConfiguracion()">⚙️</button>
+                <button onclick="bloquearAppTotal()">🔒</button>
+            </div>
+        </header>
 
-    function ejecutarCierreCiclo() {
-        const nuevoSueldo = parseFloat(document.getElementById('inputNuevoSueldo').value) || 0;
-        const periodoActual = document.getElementById('textoPeriodoActual').textContent;
-        
-        historialCiclos.push({
-            periodo: periodoActual,
-            sobranteFinal: datosCaja,
-            movimientos: [...movimientosActuales]
-        });
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="cambiarPestaña('panel', event)">Panel Actual</button>
+            <button class="tab" onclick="cambiarPestaña('historial', event)">Historial / Cierres</button>
+        </div>
 
-        renderizarHistorial();
+        <!-- PANEL ACTUAL -->
+        <div id="tab-panel" class="tab-content active">
+            <div class="balance-card">
+                <span>Caja Disponible</span>
+                <h2 id="lblCaja">$0</h2>
+            </div>
 
-        datosSobrante = datosCaja > 0 ? datosCaja : 0;
-        datosIngresos = nuevoSueldo;
-        datosCaja = datosSobrante + datosIngresos;
-        movimientosActuales = [];
+            <div class="grid-stats">
+                <div class="stat-card">
+                    <span>Sobrante Anterior</span>
+                    <h3 id="lblSobrante">$0</h3>
+                </div>
+                <div class="stat-card">
+                    <span>Sueldo / Ingresos</span>
+                    <h3 id="lblIngresos">$0</h3>
+                </div>
+            </div>
 
-        renderizarMovimientosActuales();
-        document.getElementById('textoPeriodoActual').textContent = "5 Septiembre Al 4 De Octubre";
+            <div class="actions-grid">
+                <button class="btn-action btn-income" onclick="abrirModal('ingreso')">+ Ingreso Extra</button>
+                <button class="btn-action btn-expense" onclick="abrirModal('gasto')">- Registrar Gasto</button>
+                <button class="btn-action btn-cycle" onclick="abrirCerrarCiclo()">🔄 Cerrar Ciclo / Nuevo Período</button>
+            </div>
 
-        actualizarPantalla();
-        guardarDatosLocales(); // <-- GUARDAR CAMBIO DE CICLO
-        cerrarModal('modalCiclo');
-        alert(`¡Ciclo cerrado! Se arrastraron $${datosSobrante.toLocaleString()} al nuevo período.`);
-    }
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div class="section-title" style="margin: 0;">Movimientos del Mes</div>
+                <button onclick="exportarExcelMesActual()" style="background: none; border: none; color: var(--accent); font-size: 11px; cursor: pointer; font-weight: bold;">📊 Exportar CSV</button>
+            </div>
 
-    function renderizarHistorial() {
-        const contenedor = document.getElementById('listaCiclosAnteriores');
-        contenedor.innerHTML = '';
-        
-        if(historialCiclos.length === 0) {
-            contenedor.innerHTML = `<p style="font-size: 12px; color: #8b949e; text-align: center; padding: 10px;">Aún no hay ciclos cerrados en el historial.</p>`;
-            return;
+            <div class="transaction-list" id="listaMovimientos">
+                <!-- Se inyecta por JS -->
+            </div>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div id="tab-historial" class="tab-content">
+            <div class="section-title">Ciclos Anteriores Guardados</div>
+            <div id="listaCiclosAnteriores" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Se inyecta por JS -->
+            </div>
+        </div>
+
+        <!-- MODAL ACCIÓN (GASTO / INGRESO) -->
+        <div id="modalAccion" class="modal-overlay">
+            <div class="modal-content">
+                <h3 id="modalTitulo">Registrar Gasto</h3>
+                <div class="form-group">
+                    <label id="labelConcepto">Concepto / Detalle</label>
+                    <input type="text" id="inputConcepto" class="form-control" placeholder="Ej. Supermercado">
+                </div>
+                <div class="form-group" id="grupoCategoria">
+                    <label>Categoría</label>
+                    <select id="selectCategoria" class="form-control">
+                        <option value="Comida">Comida</option>
+                        <option value="Servicios">Servicios</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Varios">Varios</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Monto ($)</label>
+                    <input type="number" id="inputMonto" class="form-control" placeholder="0">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-primary btn-cancel" onclick="cerrarModal('modalAccion')">Cancelar</button>
+                    <button class="btn-primary" onclick="guardarAccion()">Guardar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL CIERRE DE CICLO -->
+        <div id="modalCiclo" class="modal-overlay">
+            <div class="modal-content">
+                <h3>Cierre de Ciclo Mensual</h3>
+                <p style="font-size: 12px; color: var(--text-main);">El sobrante actual se arrastrará como base y podrás ingresar tu nuevo sueldo.</p>
+                <div class="form-group">
+                    <label>Nuevo Sueldo / Ingreso Base ($)</label>
+                    <input type="number" id="inputNuevoSueldo" class="form-control" placeholder="0">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-primary btn-cancel" onclick="cerrarModal('modalCiclo')">Cancelar</button>
+                    <button class="btn-primary" onclick="ejecutarCierreCiclo()">Confirmar Cierre</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL CONFIGURACIÓN & BACKUP -->
+        <div id="modalConfig" class="modal-overlay">
+            <div class="modal-content">
+                <h3>Configuración y Respaldo</h3>
+                <div class="form-group">
+                    <label>Nombre del Período Actual</label>
+                    <input type="text" id="cfgNombrePeriodo" class="form-control" value="5 Agosto Al 4 Septiembre">
+                </div>
+                <button class="btn-primary" onclick="guardarConfiguracion()" style="background-color: var(--panel-bg); border: 1px solid var(--accent);">Actualizar Período</button>
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                <div class="form-group">
+                    <label>Código de Backup (Portapapeles)</label>
+                    <button class="btn-primary" onclick="exportarBackupData()" style="font-size: 12px; padding: 8px;">Copiar Backup de Datos</button>
+                </div>
+                <div class="form-group">
+                    <label>Restaurar Datos mediante Código</label>
+                    <textarea id="inputBackupRestaurar" class="form-control" rows="2" placeholder="Pegá el código acá..."></textarea>
+                    <button class="btn-primary" onclick="importarBackupData()" style="margin-top: 6px; font-size: 12px; padding: 8px;">Restaurar</button>
+                </div>
+                <div class="modal-buttons" style="margin-top: 10px;">
+                    <button class="btn-primary btn-cancel" onclick="cerrarModal('modalConfig')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DETALLE HISTORIAL CICLO -->
+        <div id="modalDetalleCiclo" class="modal-overlay">
+            <div class="modal-content" style="max-height: 80vh;">
+                <h3 id="tituloDetalleHistorial">Detalle del Ciclo</h3>
+                <div id="contenidoDetalleMovimientos" style="overflow-y: auto; max-height: 250px; display: flex; flex-direction: column; gap: 6px;">
+                    <!-- Se inyecta por JS -->
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-primary" onclick="exportarExcelCicloSeleccionado()" style="font-size: 12px;">📊 Descargar CSV</button>
+                    <button class="btn-primary btn-cancel" onclick="cerrarModal('modalDetalleCiclo')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT DE CONTROL Y PERSISTENCIA -->
+    <script>
+        let tipoActual = '';
+        let datosCaja = 0;
+        let datosSobrante = 0;
+        let datosIngresos = 0;
+        let movimientosActuales = [];
+        let historialCiclos = [];
+        let indiceCicloSeleccionado = null;
+
+        window.onload = function() {
+            cargarDatosLocales();
+            bloquearAppTotal();
+        };
+
+        function guardarDatosLocales() {
+            const data = {
+                caja: datosCaja,
+                sobrante: datosSobrante,
+                ingresos: datosIngresos,
+                periodoActual: document.getElementById('textoPeriodoActual').textContent,
+                movimientos: movimientosActuales,
+                historial: historialCiclos
+            };
+            localStorage.setItem('financeos_data', JSON.stringify(data));
         }
 
-        historialCiclos.forEach((c, index) => {
-            contenedor.innerHTML += `
-                <div class="cycle-card-hist" onclick="verDetalleCiclo(${index})">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="font-weight: bold; color: #f3f4f6; font-size: 13px;">${c.periodo}</div>
-                        <div style="color: #34d399; font-size: 11px;">Ver Gastos 🔍</div>
+        function cargarDatosLocales() {
+            const guardado = localStorage.getItem('financeos_data');
+            if (guardado) {
+                try {
+                    const data = JSON.parse(guardado);
+                    datosCaja = data.caja || 0;
+                    datosSobrante = data.sobrante || 0;
+                    datosIngresos = data.ingresos || 0;
+                    if (data.periodoActual) {
+                        document.getElementById('textoPeriodoActual').textContent = data.periodoActual;
+                        document.getElementById('cfgNombrePeriodo').value = data.periodoActual;
+                    }
+                    movimientosActuales = data.movimientos || [];
+                    historialCiclos = data.historial || [];
+
+                    renderizarMovimientosActuales();
+                    renderizarHistorial();
+                    actualizarPantalla();
+                } catch (e) {
+                    console.error("Error al cargar datos locales", e);
+                }
+            }
+        }
+
+        function bloquearAppTotal() {
+            document.getElementById('inputPinBloqueo').value = '';
+            document.getElementById('pantallaBloqueo').style.display = 'flex';
+        }
+
+        function verificarPin() {
+            const pinIngresado = document.getElementById('inputPinBloqueo').value;
+            if(pinIngresado === '1601') {
+                document.getElementById('pantallaBloqueo').style.display = 'none';
+            } else {
+                alert('PIN Incorrecto. El PIN predeterminado es 1601.');
+                document.getElementById('inputPinBloqueo').value = '';
+            }
+        }
+
+        function cambiarPestaña(tabName, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            
+            if(tabName === 'panel') {
+                document.getElementById('tab-panel').classList.add('active');
+            } else {
+                document.getElementById('tab-historial').classList.add('active');
+            }
+            event.currentTarget.classList.add('active');
+        }
+
+        function abrirModal(tipo) {
+            tipoActual = tipo;
+            const modal = document.getElementById('modalAccion');
+            const titulo = document.getElementById('modalTitulo');
+            const grupoCat = document.getElementById('grupoCategoria');
+            const labelConc = document.getElementById('labelConcepto');
+
+            if (tipo === 'ingreso') {
+                titulo.textContent = 'Registrar Ingreso Extra';
+                labelConc.textContent = 'Concepto (Ej. Changas, Venta)';
+                grupoCat.style.display = 'none';
+            } else {
+                titulo.textContent = 'Registrar Gasto';
+                labelConc.textContent = 'Concepto / Detalle';
+                grupoCat.style.display = 'block';
+            }
+
+            document.getElementById('inputConcepto').value = '';
+            document.getElementById('inputMonto').value = '';
+            modal.style.display = 'flex';
+        }
+
+        function cerrarModal(idModal) {
+            document.getElementById(idModal).style.display = 'none';
+        }
+
+        function abrirCerrarCiclo() {
+            document.getElementById('inputNuevoSueldo').value = '0';
+            document.getElementById('modalCiclo').style.display = 'flex';
+        }
+
+        function abrirConfiguracion() {
+            document.getElementById('modalConfig').style.display = 'flex';
+        }
+
+        function guardarConfiguracion() {
+            const nuevoPeriodo = document.getElementById('cfgNombrePeriodo').value;
+            document.getElementById('textoPeriodoActual').textContent = nuevoPeriodo;
+            guardarDatosLocales();
+            cerrarModal('modalConfig');
+            alert('Configuración guardada correctamente.');
+        }
+
+        function guardarAccion() {
+            const concepto = document.getElementById('inputConcepto').value || (tipoActual === 'ingreso' ? 'Ingreso extra' : 'Gasto general');
+            const monto = parseFloat(document.getElementById('inputMonto').value);
+            
+            if (isNaN(monto) || monto <= 0) {
+                alert('Por favor ingresá un monto válido.');
+                return;
+            }
+
+            let detalleMovimiento = {
+                tipo: tipoActual,
+                concepto: concepto,
+                monto: monto,
+                categoria: tipoActual === 'gasto' ? document.getElementById('selectCategoria').value : 'Ingreso Extra'
+            };
+
+            movimientosActuales.push(detalleMovimiento);
+
+            if (tipoActual === 'ingreso') {
+                datosIngresos += monto;
+                datosCaja += monto;
+            } else {
+                datosCaja -= monto;
+            }
+
+            renderizarMovimientosActuales();
+            actualizarPantalla();
+            guardarDatosLocales();
+            cerrarModal('modalAccion');
+        }
+
+        function renderizarMovimientosActuales() {
+            const lista = document.getElementById('listaMovimientos');
+            lista.innerHTML = `
+                <div class="transaction-item">
+                    <div class="t-info">
+                        <div>Sueldo / Inicio de Ciclo</div>
+                        <div>Base inicial</div>
                     </div>
-                    <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">Sobrante guardado: $${c.sobranteFinal.toLocaleString()}</div>
+                    <div class="t-amount income">+$${datosSobrante.toLocaleString()}</div>
                 </div>
             `;
-        });
-    }
 
-    function verDetalleCiclo(index) {
-        indiceCicloSeleccionado = index;
-        const ciclo = historialCiclos[index];
-        document.getElementById('tituloDetalleHistorial').textContent = ciclo.periodo;
-        const contenedorDetalle = document.getElementById('contenidoDetalleMovimientos');
-        
-        contenedorDetalle.innerHTML = `<div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">Sobrante final: $${ciclo.sobranteFinal.toLocaleString()}</div>`;
-        
-        if(ciclo.movimientos.length === 0) {
-            contenedorDetalle.innerHTML += `<p style="font-size: 13px; color: #8b949e;">No se registraron movimientos en este ciclo.</p>`;
-        } else {
-            ciclo.movimientos.forEach(m => {
-                const claseColor = m.tipo === 'ingreso' ? 'color: #34d399;' : 'color: #f87171;';
-                const signo = m.tipo === 'ingreso' ? '+' : '-';
-                contenedorDetalle.innerHTML += `
-                    <div class="transaction-item">
+            movimientosActuales.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'transaction-item';
+                if (m.tipo === 'ingreso') {
+                    item.innerHTML = `
+                        <div class="t-info">
+                            <div>${m.concepto}</div>
+                            <div>Ingreso Extra</div>
+                        </div>
+                        <div class="t-amount income">+$${m.monto.toLocaleString()}</div>
+                    `;
+                } else {
+                    item.innerHTML = `
                         <div class="t-info">
                             <div>${m.concepto}</div>
                             <div>${m.categoria}</div>
                         </div>
-                        <div style="${claseColor} font-weight: bold; font-size: 13px;">${signo}$${m.monto.toLocaleString()}</div>
+                        <div class="t-amount expense">-$${m.monto.toLocaleString()}</div>
+                    `;
+                }
+                lista.prepend(item);
+            });
+        }
+
+        function ejecutarCierreCiclo() {
+            const nuevoSueldo = parseFloat(document.getElementById('inputNuevoSueldo').value) || 0;
+            const periodoActual = document.getElementById('textoPeriodoActual').textContent;
+            
+            historialCiclos.push({
+                periodo: periodoActual,
+                sobranteFinal: datosCaja,
+                movimientos: [...movimientosActuales]
+            });
+
+            renderizarHistorial();
+
+            datosSobrante = datosCaja > 0 ? datosCaja : 0;
+            datosIngresos = nuevoSueldo;
+            datosCaja = datosSobrante + datosIngresos;
+            movimientosActuales = [];
+
+            renderizarMovimientosActuales();
+            document.getElementById('textoPeriodoActual').textContent = "5 Septiembre Al 4 De Octubre";
+
+            actualizarPantalla();
+            guardarDatosLocales();
+            cerrarModal('modalCiclo');
+            alert(`¡Ciclo cerrado! Se arrastraron $${datosSobrante.toLocaleString()} al nuevo período.`);
+        }
+
+        function renderizarHistorial() {
+            const contenedor = document.getElementById('listaCiclosAnteriores');
+            contenedor.innerHTML = '';
+            
+            if(historialCiclos.length === 0) {
+                contenedor.innerHTML = `<p style="font-size: 12px; color: var(--text-main); text-align: center; padding: 10px;">Aún no hay ciclos cerrados en el historial.</p>`;
+                return;
+            }
+
+            historialCiclos.forEach((c, index) => {
+                contenedor.innerHTML += `
+                    <div class="cycle-card-hist" onclick="verDetalleCiclo(${index})">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-weight: bold; color: var(--text-white); font-size: 13px;">${c.periodo}</div>
+                            <div style="color: var(--green); font-size: 11px;">Ver Gastos 🔍</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-main); margin-top: 4px;">Sobrante guardado: $${c.sobranteFinal.toLocaleString()}</div>
                     </div>
                 `;
             });
         }
 
-        document.getElementById('modalDetalleCiclo').style.display = 'flex';
-    }
+        function verDetalleCiclo(index) {
+            indiceCicloSeleccionado = index;
+            const ciclo = historialCiclos[index];
+            document.getElementById('tituloDetalleHistorial').textContent = ciclo.periodo;
+            const contenedorDetalle = document.getElementById('contenidoDetalleMovimientos');
+            
+            contenedorDetalle.innerHTML = `<div style="font-size: 12px; color: var(--text-main); margin-bottom: 8px;">Sobrante final: $${ciclo.sobranteFinal.toLocaleString()}</div>`;
+            
+            if(ciclo.movimientos.length === 0) {
+                contenedorDetalle.innerHTML += `<p style="font-size: 13px; color: var(--text-main);">No se registraron movimientos en este ciclo.</p>`;
+            } else {
+                ciclo.movimientos.forEach(m => {
+                    const claseColor = m.tipo === 'ingreso' ? 'color: var(--green);' : 'color: var(--red);';
+                    const signo = m.tipo === 'ingreso' ? '+' : '-';
+                    contenedorDetalle.innerHTML += `
+                        <div class="transaction-item">
+                            <div class="t-info">
+                                <div>${m.concepto}</div>
+                                <div>${m.categoria}</div>
+                            </div>
+                            <div style="${claseColor} font-weight: bold; font-size: 13px;">${signo}$${m.monto.toLocaleString()}</div>
+                        </div>
+                    `;
+                });
+            }
 
-    function exportarExcelMesActual() {
-        let csv = "Tipo,Concepto,Categoria,Monto\n";
-        movimientosActuales.forEach(m => {
-            csv += `${m.tipo},"${m.concepto}","${m.categoria}",${m.monto}\n`;
-        });
-        descargarArchivoCSV(csv, "Informe_Mes_Actual.csv");
-    }
-
-    function exportarExcelCicloSeleccionado() {
-        if(indiceCicloSeleccionado === null) return;
-        const ciclo = historialCiclos[indiceCicloSeleccionado];
-        let csv = `Periodo:,${ciclo.periodo}\nSobrante Final:,${ciclo.sobranteFinal}\n\nTipo,Concepto,Categoria,Monto\n`;
-        ciclo.movimientos.forEach(m => {
-            csv += `${m.tipo},"${m.concepto}","${m.categoria}",${m.monto}\n`;
-        });
-        descargarArchivoCSV(csv, `Informe_${ciclo.periodo.replace(/ /g, "_")}.csv`);
-    }
-
-    function descargarArchivoCSV(contenido, nombreArchivo) {
-        const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-        const enlace = document.createElement("a");
-        enlace.href = URL.createObjectURL(blob);
-        enlace.download = nombreArchivo;
-        enlace.click();
-    }
-
-    function exportarBackupData() {
-        const data = {
-            caja: datosCaja,
-            sobrante: datosSobrante,
-            ingresos: datosIngresos,
-            periodoActual: document.getElementById('textoPeriodoActual').textContent,
-            movimientos: movimientosActuales,
-            historial: historialCiclos
-        };
-        const codigoJson = JSON.stringify(data);
-        navigator.clipboard.writeText(codigoJson);
-        alert("¡Backup copiado al portapapeles! Pasalo a tu otro celular y pegalo en el campo de restaurar.");
-    }
-
-    function importarBackupData() {
-        try {
-            const codigoJson = document.getElementById('inputBackupRestaurar').value;
-            const data = JSON.parse(codigoJson);
-            datosCaja = data.caja;
-            datosSobrante = data.sobrante;
-            datosIngresos = data.ingresos;
-            document.getElementById('textoPeriodoActual').textContent = data.periodoActual;
-            movimientosActuales = data.movimientos;
-            historialCiclos = data.historial;
-
-            renderizarMovimientosActuales();
-            renderizarHistorial();
-            actualizarPantalla();
-            guardarDatosLocales(); // <-- GUARDAR TRAS IMPORTAR
-            cerrarModal('modalConfig');
-            alert("¡Datos restaurados con éxito!");
-        } catch (e) {
-            alert("El código de backup no es válido.");
+            document.getElementById('modalDetalleCiclo').style.display = 'flex';
         }
-    }
 
-    function actualizarPantalla() {
-        document.getElementById('lblCaja').textContent = `$${datosCaja.toLocaleString()}`;
-        document.getElementById('lblSobrante').textContent = `$${datosSobrante.toLocaleString()}`;
-        document.getElementById('lblIngresos').textContent = `$${datosIngresos.toLocaleString()}`;
-    }
-</script>
+        function exportarExcelMesActual() {
+            let csv = "Tipo,Concepto,Categoria,Monto\n";
+            movimientosActuales.forEach(m => {
+                csv += `${m.tipo},"${m.concepto}","${m.categoria}",${m.monto}\n`;
+            });
+            descargarArchivoCSV(csv, "Informe_Mes_Actual.csv");
+        }
+
+        function exportarExcelCicloSeleccionado() {
+            if(indiceCicloSeleccionado === null) return;
+            const ciclo = historialCiclos[indiceCicloSeleccionado];
+            let csv = `Periodo:,${ciclo.periodo}\nSobrante Final:,${ciclo.sobranteFinal}\n\nTipo,Concepto,Categoria,Monto\n`;
+            ciclo.movimientos.forEach(m => {
+                csv += `${m.tipo},"${m.concepto}","${m.categoria}",${m.monto}\n`;
+            });
+            descargarArchivoCSV(csv, `Informe_${ciclo.periodo.replace(/ /g, "_")}.csv`);
+        }
+
+        function descargarArchivoCSV(contenido, nombreArchivo) {
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+            const enlace = document.createElement("a");
+            enlace.href = URL.createObjectURL(blob);
+            enlace.download = nombreArchivo;
+            enlace.click();
+        }
+
+        function exportarBackupData() {
+            const data = {
+                caja: datosCaja,
+                sobrante: datosSobrante,
+                ingresos: datosIngresos,
+                periodoActual: document.getElementById('textoPeriodoActual').textContent,
+                movimientos: movimientosActuales,
+                historial: historialCiclos
+            };
+            const codigoJson = JSON.stringify(data);
+            navigator.clipboard.writeText(codigoJson);
+            alert("¡Backup copiado al portapapeles! Pasalo a tu otro celular y pegalo en el campo de restaurar.");
+        }
+
+        function importarBackupData() {
+            try {
+                const codigoJson = document.getElementById('inputBackupRestaurar').value;
+                const data = JSON.parse(codigoJson);
+                datosCaja = data.caja;
+                datosSobrante = data.sobrante;
+                datosIngresos = data.ingresos;
+                document.getElementById('textoPeriodoActual').textContent = data.periodoActual;
+                movimientosActuales = data.movimientos;
+                historialCiclos = data.historial;
+
+                renderizarMovimientosActuales();
+                renderizarHistorial();
+                actualizarPantalla();
+                guardarDatosLocales();
+                cerrarModal('modalConfig');
+                alert("¡Datos restaurados con éxito!");
+            } catch (e) {
+                alert("El código de backup no es válido.");
+            }
+        }
+
+        function actualizarPantalla() {
+            document.getElementById('lblCaja').textContent = `$${datosCaja.toLocaleString()}`;
+            document.getElementById('lblSobrante').textContent = `$${datosSobrante.toLocaleString()}`;
+            document.getElementById('lblIngresos').textContent = `$${datosIngresos.toLocaleString()}`;
+        }
+    </script>
+</body>
+</html>
