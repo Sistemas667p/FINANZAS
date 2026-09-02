@@ -340,7 +340,7 @@
         <div id="pantallaBloqueo">
             <div class="lock-box">
                 <h2>FinanceOS</h2>
-                <p>Ingresá tu PIN de seguridad (Predeterminado: 1601)</p>
+                <p>Ingresá tu PIN de seguridad</p>
                 <input type="password" id="inputPinBloqueo" maxlength="4" placeholder="••••">
                 <button class="btn-primary" onclick="verificarPin()">Desbloquear</button>
             </div>
@@ -490,12 +490,12 @@
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button class="btn-primary" onclick="exportarExcelCicloSeleccionado()" style="font-size: 12px;">📊 Descargar CSV</button>
                     <button class="btn-primary btn-cancel" onclick="cerrarModal('modalDetalleCiclo')">Cerrar</button>
-                </div>
+                </div>fb
             </div>
         </div>
 
     </div>
-
+f
     <!-- SCRIPT DE CONTROL Y PERSISTENCIA -->
     <script>
         let tipoActual = '';
@@ -557,13 +557,13 @@
             if(pinIngresado === '1601') {
                 document.getElementById('pantallaBloqueo').style.display = 'none';
             } else {
-                alert('PIN Incorrecto. El PIN predeterminado es 1601.');
+                alert('PIN Incorrecto.');
                 document.getElementById('inputPinBloqueo').value = '';
             }
         }
 
         function reiniciarDeFabrica() {
-            const pinConfirmacion = prompt("Para borrar todo y reiniciar de fábrica, ingresá tu PIN de seguridad (1601):");
+            const pinConfirmacion = prompt("Para borrar todo y reiniciar de fábrica, ingresá tu PIN de seguridad:");
             if (pinConfirmacion === '1601') {
                 localStorage.removeItem('financeos_data');
                 datosCaja = 0;
