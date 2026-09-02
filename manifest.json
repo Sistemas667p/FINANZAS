@@ -2,15 +2,15 @@
   "name": "FinanceOS",
   "short_name": "FinanceOS",
   "description": "Aplicación de control de finanzas personales",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/FINANZAS/",
+  "scope": "/FINANZAS/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0b0c10",
   "theme_color": "#0b0c10",
   "icons": [
     {
-      "src": "./IMAGEN.png",
+      "src": "/FINANZAS/IMAGEN.png",
       "sizes": "512x512",
       "type": "image/png"
     }
