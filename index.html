@@ -1,502 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="./manifest.json">
-    <title>FinanceOS</title>
-    <style>
-        body {
-            background-color: #0b0c10;
-            color: #f3f4f6;
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 16px;
-            display: flex;
-            justify-content: center;
-        }
-        .app-container {
-            width: 100%;
-            max-width: 480px;
-        }
-        /* Pantalla de Bloqueo Total */
-        #pantallaBloqueo {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #0b0c10;
-            z-index: 9999;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        /* Barra Superior */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .logo {
-            font-weight: bold;
-            font-size: 18px;
-            color: #f97316;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .top-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        .icon-btn {
-            background-color: #1f242d;
-            border: 1px solid #323842;
-            color: #9ca3af;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .icon-btn:hover { background-color: #2b313b; color: white; }
-
-        /* Pestañas */
-        .tabs {
-            display: flex;
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 16px;
-        }
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            color: #8b949e;
-            border: none;
-            background: transparent;
-        }
-        .tab.active {
-            background-color: #6366f1;
-            color: white;
-        }
-
-        /* Selector de Ciclo */
-        .cycle-selector {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .cycle-btn {
-            background-color: #21262d;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .cycle-btn:hover { background-color: #30363d; }
-
-        /* Tarjeta Principal */
-        .card-main {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 24px;
-            text-align: center;
-            margin-bottom: 16px;
-        }
-        .card-title {
-            font-size: 11px;
-            letter-spacing: 1px;
-            color: #8b949e;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        .card-amount {
-            font-size: 38px;
-            font-weight: bold;
-            color: #10b981;
-            margin-bottom: 16px;
-        }
-        .btn-close-cycle {
-            background-color: #6366f1;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            font-size: 13px;
-        }
-        .btn-close-cycle:hover { background-color: #4f46e5; }
-
-        /* Tarjetas Secundarias */
-        .sub-cards {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .sub-card {
-            flex: 1;
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            padding: 14px;
-        }
-        .sub-card-title {
-            font-size: 10px;
-            color: #8b949e;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-        .sub-card-amount {
-            font-size: 18px;
-            font-weight: bold;
-            color: #f3f4f6;
-        }
-
-        /* Botones de Acción */
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .btn-action {
-            flex: 1;
-            padding: 14px;
-            border-radius: 10px;
-            border: none;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .btn-ingreso-action { background-color: #065f46; color: #34d399; }
-        .btn-ingreso-action:hover { background-color: #047857; }
-        .btn-gasto-action { background-color: #7f1d1d; color: #f87171; }
-        .btn-gasto-action:hover { background-color: #991b1b; }
-
-        /* Sección de Historial */
-        .section-history {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-        .section-title {
-            font-size: 13px;
-            font-weight: bold;
-            color: #c9d1d9;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .transaction-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #21262d;
-            font-size: 13px;
-        }
-        .transaction-item:last-child { border-bottom: none; }
-        .t-info div:first-child { font-weight: 500; color: #f3f4f6; }
-        .t-info div:last-child { font-size: 11px; color: #8b949e; }
-        .t-amount.income { color: #34d399; font-weight: bold; }
-        .t-amount.expense { color: #f87171; font-weight: bold; }
-
-        .cycle-card-hist {
-            background-color: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
-        .cycle-card-hist:hover { border-color: #6366f1; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* Modales */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.75);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            padding: 24px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .modal-content h3 { margin-top: 0; color: #f3f4f6; font-size: 16px; }
-        .form-group {
-            margin-bottom: 14px;
-            text-align: left;
-        }
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: #8b949e;
-            margin-bottom: 6px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            background-color: #0b0c10;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: white;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .btn-modal-cancel {
-            background-color: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            flex: 1;
-            font-size: 13px;
-        }
-        .btn-modal-confirm {
-            background-color: #6366f1;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            flex: 1;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        .btn-excel {
-            background-color: #047857;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-            font-size: 13px;
-            margin-top: 8px;
-        }
-        .btn-excel:hover { background-color: #065f46; }
-    </style>
-</head>
-<body>
-
-<!-- PANTALLA DE BLOQUEO TOTAL (PIN 1601) -->
-<div id="pantallaBloqueo">
-    <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
-    <h2 style="color: #f3f4f6; margin-bottom: 6px;">FinanceOS Bloqueado</h2>
-    <p style="font-size: 13px; color: #8b949e; margin-bottom: 20px;">Ingresá tu PIN de 4 dígitos para acceder.</p>
-    <div style="width: 100%; max-width: 240px;">
-        <input type="password" id="inputPinBloqueo" maxlength="4" placeholder="****" style="text-align: center; font-size: 24px; letter-spacing: 6px; padding: 12px; background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; color: white; width: 100%; box-sizing: border-box;">
-        <button onclick="verificarPin()" style="background-color: #6366f1; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 14px; cursor: pointer; font-size: 14px;">Desbloquear</button>
-    </div>
-</div>
-
-<div class="app-container">
-    <!-- Barra Superior -->
-    <div class="top-bar">
-        <div class="logo">⚡ FinanceOS</div>
-        <div class="top-buttons">
-            <button class="icon-btn" onclick="abrirConfiguracion()">⚙️ Config</button>
-            <button class="icon-btn" onclick="bloquearAppTotal()">🔒</button>
-        </div>
-    </div>
-
-    <!-- Pestañas -->
-    <div class="tabs">
-        <button class="tab active" onclick="cambiarPestaña('panel', event)">Panel Actual</button>
-        <button class="tab" onclick="cambiarPestaña('historial', event)">Historial & Periodos</button>
-    </div>
-
-    <!-- PESTAÑA 1: PANEL ACTUAL -->
-    <div id="tab-panel" class="tab-content active">
-        <div class="cycle-selector">
-            <button class="cycle-btn">‹</button>
-            <span id="textoPeriodoActual">5 Agosto Al 4 De Septiembre</span>
-            <button class="cycle-btn">›</button>
-        </div>
-
-        <div class="card-main">
-            <div class="card-title">DINERO DISPONIBLE (CAJA)</div>
-            <div class="card-amount" id="lblCaja">$0,00</div>
-            <button class="btn-close-cycle" onclick="abrirCerrarCiclo()">🔒 Cerrar y Pasar al Siguiente Ciclo</button>
-        </div>
-
-        <div class="sub-cards">
-            <div class="sub-card">
-                <div class="sub-card-title">SOBRANTE ANTERIOR</div>
-                <div class="sub-card-amount" id="lblSobrante">$0</div>
-            </div>
-            <div class="sub-card">
-                <div class="sub-card-title">INGRESOS DEL CICLO</div>
-                <div class="sub-card-amount" id="lblIngresos">$0</div>
-            </div>
-        </div>
-
-        <div class="action-buttons">
-            <button class="btn-action btn-ingreso-action" onclick="abrirModal('ingreso')">+ Ingreso</button>
-            <button class="btn-action btn-gasto-action" onclick="abrirModal('gasto')">- Gasto</button>
-        </div>
-
-        <div class="section-history">
-            <div class="section-title">
-                <span>Movimientos del Ciclo Actual</span>
-                <span style="font-size: 11px; color: #8b949e;">Registros</span>
-            </div>
-            <div id="listaMovimientos">
-                <div class="transaction-item">
-                    <div class="t-info">
-                        <div>Sueldo inicial</div>
-                        <div>Inicio de ciclo</div>
-                    </div>
-                    <div class="t-amount income">+$0</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- PESTAÑA 2: HISTORIAL & PERIODOS -->
-    <div id="tab-historial" class="tab-content">
-        <div class="section-history">
-            <div class="section-title">Historial de Ciclos Anteriores</div>
-            <div id="listaCiclosAnteriores" style="margin-top: 8px;">
-                <p style="font-size: 12px; color: #8b949e; text-align: center; padding: 10px;">Aún no hay ciclos cerrados en el historial.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Ingreso / Gasto -->
-<div id="modalAccion" class="modal">
-    <div class="modal-content">
-        <h3 id="modalTitulo">Registrar</h3>
-        <div class="form-group">
-            <label id="labelConcepto">Concepto / Detalle</label>
-            <input type="text" id="inputConcepto" placeholder="Ej. Sueldo, Supermercado...">
-        </div>
-        <div class="form-group">
-            <label>Monto ($)</label>
-            <input type="number" id="inputMonto" placeholder="0.00">
-        </div>
-        <div class="form-group" id="grupoCategoria" style="display: none;">
-            <label>Categoría</label>
-            <select id="selectCategoria">
-                <option value="Operativo / Negocio">Operativo / Negocio</option>
-                <option value="Personal">Personal</option>
-            </select>
-        </div>
-        <div class="modal-buttons">
-            <button class="btn-modal-cancel" onclick="cerrarModal('modalAccion')">Cancelar</button>
-            <button class="btn-modal-confirm" onclick="guardarAccion()">Confirmar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Cerrar Ciclo -->
-<div id="modalCiclo" class="modal">
-    <div class="modal-content">
-        <h3>Cierre de Ciclo</h3>
-        <p style="font-size: 12px; color: #8b949e; line-height: 1.4; margin-top: 6px;">
-            Al cerrar, el dinero restante pasa como <b>Sobrante Anterior</b>. Ingresá el sueldo/ingreso principal del nuevo período:
-        </p>
-        <div class="form-group" style="margin-top: 12px;">
-            <label>Nuevo Ingreso / Sueldo ($)</label>
-            <input type="number" id="inputNuevoSueldo" value="0">
-        </div>
-        <div class="modal-buttons">
-            <button class="btn-modal-cancel" onclick="cerrarModal('modalCiclo')">Cancelar</button>
-            <button class="btn-modal-confirm" onclick="ejecutarCierreCiclo()">Cerrar e Iniciar Nuevo</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Detalle Ciclo Histórico -->
-<div id="modalDetalleCiclo" class="modal">
-    <div class="modal-content">
-        <h3 id="tituloDetalleHistorial">Detalle de Ciclo</h3>
-        <div id="contenidoDetalleMovimientos" style="margin-top: 12px;"></div>
-        <button class="btn-excel" onclick="exportarExcelCicloSeleccionado()">📊 Exportar este mes a Excel</button>
-        <div class="modal-buttons" style="margin-top: 16px;">
-            <button class="btn-modal-confirm" onclick="cerrarModal('modalDetalleCiclo')">Cerrar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Configuración -->
-<div id="modalConfig" class="modal">
-    <div class="modal-content">
-        <h3>Configuración y Datos</h3>
-        <div class="form-group" style="margin-top: 12px;">
-            <label>Día del mes que cobras</label>
-            <input type="number" id="cfgDiaCobro" min="1" max="31" value="5">
-        </div>
-        <div class="form-group">
-            <label>Nombre del Período Actual</label>
-            <input type="text" id="cfgNombrePeriodo" value="5 Agosto Al 4 De Septiembre">
-        </div>
-        
-        <button class="btn-excel" onclick="exportarExcelMesActual()">📊 Exportar Mes Actual a Excel</button>
-        <button class="btn-excel" style="background-color: #4f46e5;" onclick="exportarBackupData()">💾 Copiar Backup (Para otro celu)</button>
-        <div class="form-group" style="margin-top: 10px;">
-            <label>Restaurar Backup (Pegar código aquí)</label>
-            <input type="text" id="inputBackupRestaurar" placeholder="Pegar código de backup...">
-        </div>
-        <button class="btn-excel" style="background-color: #3b82f6;" onclick="importarBackupData()">📥 Restaurar Backup</button>
-
-        <div class="modal-buttons" style="margin-top: 16px;">
-            <button class="btn-modal-cancel" onclick="cerrarModal('modalConfig')">Cancelar</button>
-            <button class="btn-modal-confirm" onclick="guardarConfiguracion()">Guardar Ajustes</button>
-        </div>
-    </div>
-</div>
-
 <script>
     let tipoActual = '';
     let datosCaja = 0;
@@ -507,8 +8,47 @@
     let indiceCicloSeleccionado = null;
 
     window.onload = function() {
+        cargarDatosLocales(); // <-- CARGA LOS DATOS AL ABRIR
         bloquearAppTotal();
     };
+
+    // --- FUNCIONES DE ALMACENAMIENTO LOCAL (PERSISTENCIA) ---
+    function guardarDatosLocales() {
+        const data = {
+            caja: datosCaja,
+            sobrante: datosSobrante,
+            ingresos: datosIngresos,
+            periodoActual: document.getElementById('textoPeriodoActual').textContent,
+            movimientos: movimientosActuales,
+            historial: historialCiclos
+        };
+        localStorage.setItem('financeos_data', JSON.stringify(data));
+    }
+
+    function cargarDatosLocales() {
+        const guardado = localStorage.getItem('financeos_data');
+        if (guardado) {
+            try {
+                const data = JSON.parse(guardado);
+                datosCaja = data.caja || 0;
+                datosSobrante = data.sobrante || 0;
+                datosIngresos = data.ingresos || 0;
+                if (data.periodoActual) {
+                    document.getElementById('textoPeriodoActual').textContent = data.periodoActual;
+                    document.getElementById('cfgNombrePeriodo').value = data.periodoActual;
+                }
+                movimientosActuales = data.movimientos || [];
+                historialCiclos = data.historial || [];
+
+                renderizarMovimientosActuales();
+                renderizarHistorial();
+                actualizarPantalla();
+            } catch (e) {
+                console.error("Error al cargar datos locales", e);
+            }
+        }
+    }
+    // -------------------------------------------------------
 
     function bloquearAppTotal() {
         document.getElementById('inputPinBloqueo').value = '';
@@ -575,6 +115,7 @@
     function guardarConfiguracion() {
         const nuevoPeriodo = document.getElementById('cfgNombrePeriodo').value;
         document.getElementById('textoPeriodoActual').textContent = nuevoPeriodo;
+        guardarDatosLocales(); // <-- GUARDAR CAMBIO
         cerrarModal('modalConfig');
         alert('Configuración guardada correctamente.');
     }
@@ -606,6 +147,7 @@
 
         renderizarMovimientosActuales();
         actualizarPantalla();
+        guardarDatosLocales(); // <-- GUARDAR AUTOMÁTICAMENTE
         cerrarModal('modalAccion');
     }
 
@@ -666,6 +208,7 @@
         document.getElementById('textoPeriodoActual').textContent = "5 Septiembre Al 4 De Octubre";
 
         actualizarPantalla();
+        guardarDatosLocales(); // <-- GUARDAR CAMBIO DE CICLO
         cerrarModal('modalCiclo');
         alert(`¡Ciclo cerrado! Se arrastraron $${datosSobrante.toLocaleString()} al nuevo período.`);
     }
@@ -674,6 +217,11 @@
         const contenedor = document.getElementById('listaCiclosAnteriores');
         contenedor.innerHTML = '';
         
+        if(historialCiclos.length === 0) {
+            contenedor.innerHTML = `<p style="font-size: 12px; color: #8b949e; text-align: center; padding: 10px;">Aún no hay ciclos cerrados en el historial.</p>`;
+            return;
+        }
+
         historialCiclos.forEach((c, index) => {
             contenedor.innerHTML += `
                 <div class="cycle-card-hist" onclick="verDetalleCiclo(${index})">
@@ -770,8 +318,9 @@
             renderizarMovimientosActuales();
             renderizarHistorial();
             actualizarPantalla();
+            guardarDatosLocales(); // <-- GUARDAR TRAS IMPORTAR
             cerrarModal('modalConfig');
-            alert("¡Datos restaurados con éxito desde el otro celular!");
+            alert("¡Datos restaurados con éxito!");
         } catch (e) {
             alert("El código de backup no es válido.");
         }
@@ -783,6 +332,3 @@
         document.getElementById('lblIngresos').textContent = `$${datosIngresos.toLocaleString()}`;
     }
 </script>
-
-</body>
-</html>
