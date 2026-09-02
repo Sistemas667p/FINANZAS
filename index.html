@@ -340,7 +340,7 @@
         <div id="pantallaBloqueo">
             <div class="lock-box">
                 <h2>FinanceOS</h2>
-                <p>Ingresá tu PIN de seguridad</p>
+                <p>Ingresá tu PIN de seguridad (Predeterminado: 1601)</p>
                 <input type="password" id="inputPinBloqueo" maxlength="4" placeholder="••••">
                 <button class="btn-primary" onclick="verificarPin()">Desbloquear</button>
             </div>
@@ -452,7 +452,7 @@
 
         <!-- MODAL CONFIGURACIÓN & BACKUP -->
         <div id="modalConfig" class="modal-overlay">
-            <div class="modal-content">
+            <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
                 <h3>Configuración y Respaldo</h3>
                 <div class="form-group">
                     <label>Nombre del Período Actual</label>
@@ -468,6 +468,11 @@
                     <label>Restaurar Datos mediante Código</label>
                     <textarea id="inputBackupRestaurar" class="form-control" rows="2" placeholder="Pegá el código acá..."></textarea>
                     <button class="btn-primary" onclick="importarBackupData()" style="margin-top: 6px; font-size: 12px; padding: 8px;">Restaurar</button>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                <div class="form-group">
+                    <label>Zona de Peligro</label>
+                    <button class="btn-primary" onclick="reiniciarDeFabrica()" style="background-color: rgba(248, 113, 113, 0.15); color: var(--red); border: 1px solid var(--red); font-size: 12px; padding: 10px;">⚠️ Borrar todo y Reiniciar de Fábrica</button>
                 </div>
                 <div class="modal-buttons" style="margin-top: 10px;">
                     <button class="btn-primary btn-cancel" onclick="cerrarModal('modalConfig')">Cerrar</button>
@@ -552,8 +557,31 @@
             if(pinIngresado === '1601') {
                 document.getElementById('pantallaBloqueo').style.display = 'none';
             } else {
-                alert('PIN Incorrecto.');
+                alert('PIN Incorrecto. El PIN predeterminado es 1601.');
                 document.getElementById('inputPinBloqueo').value = '';
+            }
+        }
+
+        function reiniciarDeFabrica() {
+            const pinConfirmacion = prompt("Para borrar todo y reiniciar de fábrica, ingresá tu PIN de seguridad (1601):");
+            if (pinConfirmacion === '1601') {
+                localStorage.removeItem('financeos_data');
+                datosCaja = 0;
+                datosSobrante = 0;
+                datosIngresos = 0;
+                movimientosActuales = [];
+                historialCiclos = [];
+                document.getElementById('textoPeriodoActual').textContent = "5 Agosto Al 4 Septiembre";
+                document.getElementById('cfgNombrePeriodo').value = "5 Agosto Al 4 Septiembre";
+                
+                renderizarMovimientosActuales();
+                renderizarHistorial();
+                actualizarPantalla();
+                cerrarModal('modalConfig');
+                bloquearAppTotal();
+                alert("¡Aplicación reiniciada de fábrica con éxito!");
+            } else if (pinConfirmacion !== null) {
+                alert("PIN incorrecto. No se borró nada.");
             }
         }
 
